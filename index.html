@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>胶片助手-YM</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f5f3ef;
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 40px;
+            color: #2c2b28;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 1rem 0;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.03);
+            border: 0.5px solid #e4e2de;
+        }
+        .card-title {
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .param-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .param-item {
+            background: #f9f7f4;
+            border-radius: 20px;
+            padding: 12px;
+            border: 0.5px solid #e9e6e1;
+        }
+        .param-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #8f8e8a;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .param-input {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 1rem;
+            border: 1px solid #dddcd8;
+            border-radius: 14px;
+            background: white;
+            font-family: monospace;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .param-input:focus {
+            outline: none;
+            border-color: #bc9a6c;
+            box-shadow: 0 0 0 2px rgba(188,154,108,0.2);
+        }
+        .select-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .select-row .select-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            color: #8f8e8a;
+            white-space: nowrap;
+        }
+        .select-row select,
+        .film-select-row select,
+        .param-select {
+            flex: 1;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 20px;
+            background: #f9f7f4;
+            border: 0.5px solid #e9e6e1;
+            font-family: monospace;
+            color: #2c2b28;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .film-select-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .film-info-text {
+            font-size: 0.8rem;
+            color: #6b6a66;
+            margin-top: 8px;
+            background: #f9f7f4;
+            padding: 6px 12px;
+            border-radius: 30px;
+            display: inline-block;
+        }
+        button {
+            background: #2c2b28;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.95rem;
+            width: 100%;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+        }
+        button:active { transform: scale(0.97); }
+        .result-card {
+            background: #1e1e1e;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 12px;
+            text-align: center;
+            color: #f0ede8;
+        }
+        .result-display {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 8px 0;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+        .meter-box {
+            background: #2c2b28;
+            border-radius: 32px;
+            padding: 20px;
+            color: #f0ede8;
+            text-align: center;
+        }
+        .meter-live {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: monospace;
+        }
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 12px;
+            width: 100%;
+        }
+        .video-container video, .freeze-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .freeze-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .spot-marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 10;
+        }
+        .guide-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .control-bar {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .control-btn {
+            background: #444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            width: auto;
+            margin: 0;
+            border: none;
+            line-height: 1.2;
+            min-width: 64px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .control-btn.active {
+            background: #d4af37;
+            color: black;
+        }
+        .guide-btn[data-guide="none"]::before { content: "✖ "; }
+        .guide-btn[data-guide="ruleOfThirds"]::before { content: "≡ "; }
+        .guide-btn[data-guide="goldenSpiral"]::before { content: "🌀 "; }
+        .guide-btn[data-guide="diagonal"]::before { content: "╱ "; }
+        .mode-btn[data-mode="spot"]::before { content: "● "; }
+        .mode-btn[data-mode="spot"]::after { content: "点测"; font-size: 0.8rem; margin-left: 4px; }
+        .mode-btn[data-mode="center"]::before { content: "◉ "; }
+        .mode-btn[data-mode="center"]::after { content: "中央"; font-size: 0.8rem; margin-left: 4px; }
+        .mode-btn[data-mode="evaluative"]::before { content: "▣ "; }
+        .mode-btn[data-mode="evaluative"]::after { content: "评价"; font-size: 0.8rem; margin-left: 4px; }
+        .mode-btn[data-mode="partial"]::before { content: "◐ "; }
+        .mode-btn[data-mode="partial"]::after { content: "局部"; font-size: 0.8rem; margin-left: 4px; }
+        .nd-result {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f9f7f4;
+            border-radius: 18px;
+            text-align: center;
+            font-weight: 500;
+        }
+        @media (max-width: 500px) {
+            body { padding: 16px; }
+            .param-grid { gap: 12px; }
+            .control-btn { padding: 6px 12px; font-size: 0.8rem; min-width: 56px; }
+            .mode-btn::after { font-size: 0.7rem; }
+            .result-display { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+<h1>🎞️ 胶片助手-YM</h1>
+
+<!-- 胶卷选择 -->
+<div class="card">
+    <div class="card-title">📋 选择胶卷</div>
+    <div class="film-select-row">
+        <select id="filmSelect"></select>
+    </div>
+    <div id="filmInfo" class="film-info-text"></div>
+</div>
+
+<!-- 手机测光表 -->
+<div class="card">
+    <div class="card-title">🔆 手机测光表</div>
+    <div class="warning" id="camWarn" style="background:#fff1e0; border-left:4px solid #d98c2b; padding:12px; font-size:0.8rem; border-radius:14px;">⚠️ 摄像头测光需要 HTTPS 环境</div>
+    <div id="cameraContainer" style="display: none;">
+        <div class="video-container" id="videoContainer" style="aspect-ratio: 4/3;">
+            <video id="videoPreview" autoplay playsinline muted style="width:100%; height:100%; object-fit: cover;"></video>
+            <canvas id="freezeCanvas" class="freeze-canvas" style="display: none;"></canvas>
+            <canvas id="guideCanvas" class="guide-canvas"></canvas>
+            <div id="spotMarker" class="spot-marker" style="display: none;"></div>
+        </div>
+        <div class="control-bar">
+            <button class="control-btn aspect-btn" data-aspect="1:1">1:1</button>
+            <button class="control-btn aspect-btn active" data-aspect="4:3">4:3</button>
+            <button class="control-btn aspect-btn" data-aspect="3:2">3:2</button>
+            <button class="control-btn aspect-btn" data-aspect="16:9">16:9</button>
+        </div>
+        <div class="control-bar">
+            <button class="control-btn guide-btn active" data-guide="ruleOfThirds"></button>
+            <button class="control-btn guide-btn" data-guide="none"></button>
+            <button class="control-btn guide-btn" data-guide="goldenSpiral"></button>
+            <button class="control-btn guide-btn" data-guide="diagonal"></button>
+        </div>
+        <div class="control-bar">
+            <button class="control-btn mode-btn active" data-mode="center"></button>
+            <button class="control-btn mode-btn" data-mode="spot"></button>
+            <button class="control-btn mode-btn" data-mode="evaluative"></button>
+            <button class="control-btn mode-btn" data-mode="partial"></button>
+        </div>
+        <div class="meter-box" style="margin-top: 12px;">
+            <div>测光 EV (ISO100): <span id="liveEV">--</span></div>
+            <div style="margin-top: 8px;">📷 推荐组合（基于当前胶卷）</div>
+            <div class="result-card">
+                <div class="result-display" id="meterResultDisplay">等待测光</div>
+            </div>
+            <button id="stopCamBtn" style="background:#4f4d49; margin-top: 14px;">停止摄像头</button>
+        </div>
+    </div>
+    <button id="startCamBtn">📷 启动摄像头测光</button>
+</div>
+
+<!-- 公共光圈选择卡片 -->
+<div class="card">
+    <div class="card-title">🔘 光圈选择</div>
+    <div class="select-row">
+        <span class="select-label">光圈值</span>
+        <select id="globalApertureSelect"></select>
+    </div>
+</div>
+
+<!-- 数码参数转换 -->
+<div class="card">
+    <div class="card-title">📸 数码参数 → 胶卷参数</div>
+    <div class="param-grid">
+        <div class="param-item"><div class="param-label">ISO</div><input type="number" id="inputISO" value="400" step="50" class="param-input"></div>
+        <div class="param-item"><div class="param-label">光圈 (F值)</div><input type="text" id="inputAperture" value="5.6" placeholder="如 5.6" class="param-input"></div>
+        <div class="param-item"><div class="param-label">快门 (秒)</div><input type="text" id="inputShutter" value="1/125" placeholder="如 1/125 或 0.008" class="param-input"></div>
+        <div class="param-item"><div class="param-label">曝光补偿 (EV)</div><input type="number" id="inputEVComp" value="0" step="0.3" min="-3" max="3" class="param-input"></div>
+    </div>
+    <button id="calcBtn">⟳ 换算</button>
+    <div class="result-card">
+        <div class="result-display" id="calcResultDisplay">等待换算</div>
+    </div>
+</div>
+
+<!-- ND计算器 -->
+<div class="card">
+    <div class="card-title">🌫️ ND滤镜计算</div>
+    <div class="param-grid">
+        <div class="param-item">
+            <div class="param-label">ND镜 1</div>
+            <select id="nd1Select" class="param-select">
+                <option value="1">无 (1)</option>
+                <option value="2">ND2 (1档)</option>
+                <option value="4">ND4 (2档)</option>
+                <option value="8">ND8 (3档)</option>
+                <option value="16">ND16 (4档)</option>
+                <option value="32">ND32 (5档)</option>
+                <option value="64">ND64 (6档)</option>
+                <option value="128">ND128 (7档)</option>
+                <option value="256">ND256 (8档)</option>
+                <option value="512">ND512 (9档)</option>
+                <option value="1000">ND1000 (~10档)</option>
+            </select>
+        </div>
+        <div class="param-item">
+            <div class="param-label">ND镜 2</div>
+            <select id="nd2Select" class="param-select">
+                <option value="1">无 (1)</option>
+                <option value="2">ND2 (1档)</option>
+                <option value="4">ND4 (2档)</option>
+                <option value="8">ND8 (3档)</option>
+                <option value="16">ND16 (4档)</option>
+                <option value="32">ND32 (5档)</option>
+                <option value="64">ND64 (6档)</option>
+                <option value="128">ND128 (7档)</option>
+                <option value="256">ND256 (8档)</option>
+                <option value="512">ND512 (9档)</option>
+                <option value="1000">ND1000 (~10档)</option>
+            </select>
+        </div>
+    </div>
+    <div class="param-item" style="margin-bottom: 16px;">
+        <div class="param-label">原始快门 (秒)</div>
+        <input type="text" id="originalShutter" value="1/125" placeholder="如 1/125" class="param-input">
+    </div>
+    <button id="ndCalcBtn">⟳ 计算ND后快门（含倒易律补偿）</button>
+    <div id="ndResult" class="nd-result">等待计算</div>
+</div>
+
+<script>
+    // ======================= 内置胶卷数据库（每款胶卷独立倒易律曲线，所有 factor >= 1） =======================
+    const builtinFilms = [
+        { name: "Kodak Vision3 250D (5207)", iso: 250, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.05},{t:8,factor:1.1},{t:15,factor:1.2},{t:30,factor:1.35}] },
+        { name: "Kodak Vision3 500T (5219)", iso: 500, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.08},{t:8,factor:1.18},{t:15,factor:1.3},{t:30,factor:1.5}] },
+        { name: "Fujifilm C200", iso: 200, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.12},{t:8,factor:1.25},{t:15,factor:1.45},{t:30,factor:1.7}] },
+        { name: "Fujifilm 业务100", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.1},{t:8,factor:1.2},{t:15,factor:1.35},{t:30,factor:1.55}] },
+        { name: "Fujifilm Velvia 50", iso: 50, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1.25},{t:4,factor:1.7},{t:8,factor:2.4},{t:15,factor:3.2},{t:30,factor:4.5}] },
+        { name: "Fujifilm Provia 100F", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1.2},{t:4,factor:1.5},{t:8,factor:2},{t:15,factor:2.8},{t:30,factor:3.8}] },
+        { name: "Fujifilm Acros II", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.05},{t:8,factor:1.1},{t:15,factor:1.15},{t:30,factor:1.2}] },
+        { name: "Kodak Portra 160", iso: 160, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.1},{t:8,factor:1.2},{t:15,factor:1.4},{t:30,factor:1.6}] },
+        { name: "Kodak Portra 400", iso: 400, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.1},{t:8,factor:1.2},{t:15,factor:1.4},{t:30,factor:1.6}] },
+        { name: "Kodak Portra 800", iso: 800, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.1},{t:8,factor:1.2},{t:15,factor:1.4},{t:30,factor:1.6}] },
+        { name: "Kodak Ektar 100", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.15},{t:8,factor:1.3},{t:15,factor:1.5},{t:30,factor:1.8}] },
+        { name: "Kodak Gold 200", iso: 200, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.12},{t:8,factor:1.25},{t:15,factor:1.45},{t:30,factor:1.7}] },
+        { name: "Kodak E100", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1.15},{t:4,factor:1.4},{t:8,factor:1.8},{t:15,factor:2.2},{t:30,factor:2.8}] },
+        { name: "Ilford HP5+", iso: 400, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.12},{t:8,factor:1.28},{t:15,factor:1.45},{t:30,factor:1.65}] },
+        { name: "Ilford FP4+", iso: 125, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.2},{t:8,factor:1.4},{t:15,factor:1.6},{t:30,factor:1.9}] },
+        { name: "Ilford Delta 100", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.1},{t:8,factor:1.2},{t:15,factor:1.35},{t:30,factor:1.55}] },
+        { name: "Ilford Delta 400", iso: 400, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.12},{t:8,factor:1.25},{t:15,factor:1.45},{t:30,factor:1.65}] },
+        { name: "Ilford 蓝凤凰 (Phoenix)", iso: 200, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.15},{t:8,factor:1.3},{t:15,factor:1.5},{t:30,factor:1.8}] },
+        { name: "Lucky C200", iso: 200, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.12},{t:8,factor:1.26},{t:15,factor:1.5},{t:30,factor:1.8}] },
+        { name: "Rollei RPX 100", iso: 100, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.1},{t:8,factor:1.2},{t:15,factor:1.35},{t:30,factor:1.55}] },
+        { name: "CineStill 800T", iso: 800, reciprocityCurve: [{t:1,factor:1},{t:2,factor:1},{t:4,factor:1.18},{t:8,factor:1.4},{t:15,factor:1.7},{t:30,factor:2.1}] }
+    ];
+    
+    const apertureList = [1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3.2, 3.5, 4, 4.5, 5.0, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22];
+    const standardShutterValues = [1/8000, 1/4000, 1/2000, 1/1000, 1/500, 1/250, 1/125, 1/60, 1/30, 1/15, 1/8, 1/4, 1/2, 1, 2, 4, 8, 15, 30];
+    
+    function normalizeShutter(t, minAllowed = null) {
+        if (t <= 0) return 0;
+        if (t < 1) {
+            let best = standardShutterValues[0];
+            let minDiff = Math.abs(t - best);
+            for (let s of standardShutterValues) {
+                if (s >= 1) break;
+                let diff = Math.abs(t - s);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    best = s;
+                }
+            }
+            return best;
+        } else {
+            let lower = (minAllowed !== null && minAllowed > t) ? minAllowed : t;
+            for (let s of standardShutterValues) {
+                if (s >= lower) return s;
+            }
+            return standardShutterValues[standardShutterValues.length-1];
+        }
+    }
+    
+    function formatExactTime(seconds) {
+        if (seconds < 1) {
+            let s = 1/seconds;
+            if (Math.abs(s - Math.round(s)) < 0.01) return `1/${Math.round(s)}`;
+            else return `1/${s.toFixed(1)}`;
+        } else if (seconds < 60) {
+            return `${seconds.toFixed(1)}秒`;
+        } else if (seconds < 3600) {
+            let minutes = Math.floor(seconds / 60);
+            let remainSeconds = seconds - minutes * 60;
+            if (remainSeconds < 0.1) return `${minutes}分`;
+            else return `${minutes}分${remainSeconds.toFixed(1)}秒`;
+        } else {
+            let hours = Math.floor(seconds / 3600);
+            let remain = seconds - hours * 3600;
+            let minutes = Math.floor(remain / 60);
+            let secs = remain - minutes * 60;
+            let result = `${hours}小时`;
+            if (minutes > 0) result += `${minutes}分`;
+            if (secs > 0.1) result += `${secs.toFixed(1)}秒`;
+            return result;
+        }
+    }
+    function formatShutter(t) {
+        if (t <= 0) return "0";
+        if (t < 1) {
+            let s = 1/t;
+            if (Math.abs(s - Math.round(s)) < 0.01) return `1/${Math.round(s)}`;
+            else return `1/${s.toFixed(1)}`;
+        } else {
+            return formatExactTime(t);
+        }
+    }
+    function formatAperture(ap) { return `F${ap.toFixed(1)}`; }
+    function parseShutterInput(str) {
+        str = str.trim();
+        if (str.includes('/')) {
+            let parts = str.split('/');
+            if (parts.length === 2) return parseFloat(parts[0]) / parseFloat(parts[1]);
+        }
+        return parseFloat(str);
+    }
+    
+    function applyReciprocity(t, curve) {
+        if (t < 1) return { compensated: t, note: "短于1秒" };
+        if (!curve || curve.length === 0) return { compensated: t, note: "无曲线" };
+        let sorted = [...curve].sort((a,b)=>a.t-b.t);
+        let factor = 1;
+        if (t <= sorted[0].t) factor = sorted[0].factor;
+        else if (t >= sorted[sorted.length-1].t) factor = sorted[sorted.length-1].factor;
+        else {
+            for (let i=0; i<sorted.length-1; i++) {
+                if (t >= sorted[i].t && t <= sorted[i+1].t) {
+                    let ratio = (t - sorted[i].t) / (sorted[i+1].t - sorted[i].t);
+                    factor = sorted[i].factor + ratio * (sorted[i+1].factor - sorted[i].factor);
+                    break;
+                }
+            }
+        }
+        if (factor < 1) factor = 1;
+        let compensated = t * factor;
+        let evInc = Math.log2(compensated / t);
+        let note = `倒易率 ×${factor.toFixed(2)} ( +${evInc.toFixed(1)} EV)`;
+        return { compensated, note };
+    }
+    
+    function evFromParams(iso, aperture, shutter) {
+        return Math.log2(aperture * aperture / shutter) + Math.log2(iso / 100);
+    }
+    function shutterFromEvAndAperture(ev, ap) {
+        return ap * ap / Math.pow(2, ev);
+    }
+    
+    function getCurrentFilm() {
+        let sel = document.getElementById('filmSelect');
+        let idx = parseInt(sel.value);
+        return builtinFilms[idx];
+    }
+    
+    let currentMeterEV = 0;
+    let currentCalcEV = 0;
+    
+    function getGlobalAperture() {
+        return parseFloat(document.getElementById('globalApertureSelect').value);
+    }
+    
+    function updateMeterDisplay() {
+        let film = getCurrentFilm();
+        let aperture = getGlobalAperture();
+        if (!film || isNaN(aperture)) return;
+        let evFilm = currentMeterEV + Math.log2(film.iso / 100);
+        let rawShutter = shutterFromEvAndAperture(evFilm, aperture);
+        if (rawShutter <= 0) {
+            document.getElementById('meterResultDisplay').innerHTML = '超出范围';
+            return;
+        }
+        let { compensated, note } = applyReciprocity(rawShutter, film.reciprocityCurve);
+        let normalized = normalizeShutter(compensated, rawShutter);
+        let displayShutter = formatShutter(normalized);
+        let resultText = `${formatAperture(aperture)} · ${displayShutter}`;
+        if (rawShutter >= 1 && normalized !== rawShutter) {
+            let rawDisplay = formatShutter(rawShutter);
+            resultText += ` (原始 ${rawDisplay} → 补偿后)`;
+        }
+        document.getElementById('meterResultDisplay').innerHTML = resultText + `<div style="font-size:0.7rem; margin-top:4px;">🎞️ ${film.name}</div>`;
+    }
+    
+    function updateCalcDisplay() {
+        let film = getCurrentFilm();
+        let aperture = getGlobalAperture();
+        if (!film || isNaN(aperture)) return;
+        let evFilm = currentCalcEV + Math.log2(film.iso / 100);
+        let rawShutter = shutterFromEvAndAperture(evFilm, aperture);
+        if (rawShutter <= 0) {
+            document.getElementById('calcResultDisplay').innerHTML = '超出范围';
+            return;
+        }
+        let { compensated, note } = applyReciprocity(rawShutter, film.reciprocityCurve);
+        let normalized = normalizeShutter(compensated, rawShutter);
+        let displayShutter = formatShutter(normalized);
+        let resultText = `${formatAperture(aperture)} · ${displayShutter}`;
+        if (rawShutter >= 1 && normalized !== rawShutter) {
+            let rawDisplay = formatShutter(rawShutter);
+            resultText += ` (原始 ${rawDisplay} → 补偿后)`;
+        }
+        document.getElementById('calcResultDisplay').innerHTML = resultText + `<div style="font-size:0.7rem; margin-top:4px;">🎞️ ${film.name}</div>`;
+    }
+    
+    function computeFilmParams() {
+        let digiISO = parseFloat(document.getElementById('inputISO').value);
+        let digiAperture = parseFloat(document.getElementById('inputAperture').value);
+        let digiShutter = parseShutterInput(document.getElementById('inputShutter').value);
+        let expComp = parseFloat(document.getElementById('inputEVComp').value);
+        if (isNaN(digiISO) || isNaN(digiAperture) || isNaN(digiShutter)) {
+            document.getElementById('calcResultDisplay').innerHTML = '请输入有效参数';
+            return;
+        }
+        if (isNaN(expComp)) expComp = 0;
+        let baseEV = evFromParams(digiISO, digiAperture, digiShutter);
+        let targetEV = baseEV + expComp;
+        currentCalcEV = targetEV;
+        updateCalcDisplay();
+        saveAllParams();
+    }
+    
+    function computeND() {
+        let nd1Val = parseFloat(document.getElementById('nd1Select').value);
+        let nd2Val = parseFloat(document.getElementById('nd2Select').value);
+        let totalND = nd1Val * nd2Val;
+        let stops = Math.log2(totalND);
+        let origShutter = parseShutterInput(document.getElementById('originalShutter').value);
+        if (isNaN(origShutter)) {
+            document.getElementById('ndResult').innerHTML = '请输入有效原始快门';
+            return;
+        }
+        let theoreticalShutter = origShutter * totalND;
+        let film = getCurrentFilm();
+        let curve = film ? film.reciprocityCurve : [];
+        let { compensated: compensatedShutter, note } = applyReciprocity(theoreticalShutter, curve);
+        let displayTheoretical = formatShutter(theoreticalShutter);
+        let displayCompensated = formatShutter(compensatedShutter);
+        let resultHtml = `ND${nd1Val>1?nd1Val:''}${nd2Val>1?' + ND'+nd2Val:''} 总档数 ${stops.toFixed(1)} EV<br>`;
+        resultHtml += `理论快门: ${displayTheoretical}<br>`;
+        if (theoreticalShutter >= 1 && compensatedShutter !== theoreticalShutter) {
+            resultHtml += `倒易率补偿后: ${displayCompensated} ${note}<br>`;
+        } else {
+            resultHtml += `补偿后快门: ${displayCompensated} (无补偿)<br>`;
+        }
+        resultHtml += `<span style="font-size:0.8rem;">🎞️ ${film.name}</span>`;
+        document.getElementById('ndResult').innerHTML = resultHtml;
+        saveAllParams();
+    }
+    
+    function saveAllParams() {
+        const params = {
+            filmIndex: document.getElementById('filmSelect').value,
+            inputISO: document.getElementById('inputISO').value,
+            inputAperture: document.getElementById('inputAperture').value,
+            inputShutter: document.getElementById('inputShutter').value,
+            inputEVComp: document.getElementById('inputEVComp').value,
+            nd1Select: document.getElementById('nd1Select').value,
+            nd2Select: document.getElementById('nd2Select').value,
+            originalShutter: document.getElementById('originalShutter').value,
+            globalAperture: document.getElementById('globalApertureSelect').value,
+            aspect: document.querySelector('.aspect-btn.active')?.dataset.aspect || '4:3',
+            guide: document.querySelector('.guide-btn.active')?.dataset.guide || 'ruleOfThirds',
+            mode: document.querySelector('.mode-btn.active')?.dataset.mode || 'center'
+        };
+        localStorage.setItem('filmAssistantParams', JSON.stringify(params));
+    }
+    
+    function restoreAllParams() {
+        const saved = localStorage.getItem('filmAssistantParams');
+        if (!saved) return;
+        try {
+            const p = JSON.parse(saved);
+            if (p.filmIndex !== undefined) document.getElementById('filmSelect').value = p.filmIndex;
+            if (p.inputISO !== undefined) document.getElementById('inputISO').value = p.inputISO;
+            if (p.inputAperture !== undefined) document.getElementById('inputAperture').value = p.inputAperture;
+            if (p.inputShutter !== undefined) document.getElementById('inputShutter').value = p.inputShutter;
+            if (p.inputEVComp !== undefined) document.getElementById('inputEVComp').value = p.inputEVComp;
+            if (p.nd1Select !== undefined) document.getElementById('nd1Select').value = p.nd1Select;
+            if (p.nd2Select !== undefined) document.getElementById('nd2Select').value = p.nd2Select;
+            if (p.originalShutter !== undefined) document.getElementById('originalShutter').value = p.originalShutter;
+            if (p.globalAperture !== undefined) document.getElementById('globalApertureSelect').value = p.globalAperture;
+            if (p.aspect) {
+                document.querySelectorAll('.aspect-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.aspect === p.aspect) btn.classList.add('active');
+                });
+                setAspectRatio(p.aspect);
+            }
+            if (p.guide) {
+                document.querySelectorAll('.guide-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.guide === p.guide) btn.classList.add('active');
+                });
+                currentGuide = p.guide;
+                drawGuides();
+            }
+            if (p.mode) {
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.mode === p.mode) btn.classList.add('active');
+                });
+                currentMeterMode = p.mode;
+                spotMarker.style.display = currentMeterMode === 'spot' ? 'block' : 'none';
+                if (videoStream && !isFrozen) updateMeterFromVideo();
+            }
+        } catch(e) {}
+    }
+    
+    function refreshFilmSelect() {
+        let sel = document.getElementById('filmSelect');
+        sel.innerHTML = '';
+        builtinFilms.forEach((film, idx) => {
+            let opt = document.createElement('option');
+            opt.value = idx;
+            opt.text = film.name;
+            sel.appendChild(opt);
+        });
+        restoreAllParams();
+        updateFilmInfo();
+        computeFilmParams();
+        if (currentMeterEV) updateMeterDisplay();
+    }
+    function updateFilmInfo() {
+        let film = getCurrentFilm();
+        if (film) document.getElementById('filmInfo').innerHTML = `🎞️ 当前：${film.name} · ISO ${film.iso}`;
+    }
+    
+    function fillGlobalApertureSelect() {
+        let select = document.getElementById('globalApertureSelect');
+        select.innerHTML = '';
+        apertureList.forEach(ap => {
+            let option = document.createElement('option');
+            option.value = ap;
+            option.text = `F${ap.toFixed(1)}`;
+            select.appendChild(option);
+        });
+        select.value = '5.6';
+    }
+    
+    // ========== 摄像头测光部分 ==========
+    let videoStream = null, animId = null;
+    let isFrozen = false;
+    let currentAspect = '4:3';
+    let currentMeterMode = 'center';
+    let currentGuide = 'ruleOfThirds';
+    const videoPreview = document.getElementById('videoPreview');
+    const cameraContainer = document.getElementById('cameraContainer');
+    const freezeCanvas = document.getElementById('freezeCanvas');
+    const spotMarker = document.getElementById('spotMarker');
+    const guideCanvas = document.getElementById('guideCanvas');
+    const videoContainer = document.getElementById('videoContainer');
+    
+    function setAspectRatio(ratio) {
+        let [w, h] = ratio.split(':').map(Number);
+        videoContainer.style.aspectRatio = `${w}/${h}`;
+    }
+    function drawGuides() {
+        if (!videoPreview.videoWidth || !videoPreview.videoHeight) return;
+        const canvas = guideCanvas;
+        const containerRect = videoContainer.getBoundingClientRect();
+        canvas.width = containerRect.width;
+        canvas.height = containerRect.height;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 1.5;
+        if (currentGuide === 'ruleOfThirds') {
+            const thirdX = canvas.width / 3, thirdY = canvas.height / 3;
+            ctx.beginPath();
+            for (let i = 1; i <= 2; i++) {
+                ctx.moveTo(thirdX * i, 0);
+                ctx.lineTo(thirdX * i, canvas.height);
+                ctx.moveTo(0, thirdY * i);
+                ctx.lineTo(canvas.width, thirdY * i);
+            }
+            ctx.stroke();
+        } else if (currentGuide === 'goldenSpiral') {
+            const w = canvas.width, h = canvas.height;
+            ctx.beginPath();
+            ctx.moveTo(w, h);
+            ctx.lineTo(w, h/1.618);
+            ctx.lineTo(w/1.618, h/1.618);
+            ctx.lineTo(w/1.618, h);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(w, h, Math.min(w, h)/1.618, 0, Math.PI/2);
+            ctx.stroke();
+        } else if (currentGuide === 'diagonal') {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.moveTo(0, canvas.height);
+            ctx.lineTo(canvas.width, 0);
+            ctx.stroke();
+        }
+    }
+    function getLumaAtDisplayPoint(displayX, displayY) {
+        const videoRect = videoPreview.getBoundingClientRect();
+        const containerRect = videoContainer.getBoundingClientRect();
+        const video = videoPreview;
+        const vw = video.videoWidth, vh = video.videoHeight;
+        const containerAspect = containerRect.width / containerRect.height;
+        const videoAspect = vw / vh;
+        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+        if (videoAspect > containerAspect) {
+            drawHeight = containerRect.height;
+            drawWidth = drawHeight * videoAspect;
+            offsetX = (containerRect.width - drawWidth) / 2;
+        } else {
+            drawWidth = containerRect.width;
+            drawHeight = drawWidth / videoAspect;
+            offsetY = (containerRect.height - drawHeight) / 2;
+        }
+        let relX = (displayX - videoRect.left) / videoRect.width;
+        let relY = (displayY - videoRect.top) / videoRect.height;
+        let origX = (relX * drawWidth - offsetX) / containerRect.width;
+        let origY = (relY * drawHeight - offsetY) / containerRect.height;
+        origX = Math.min(1, Math.max(0, origX));
+        origY = Math.min(1, Math.max(0, origY));
+        let canvas = document.createElement('canvas');
+        canvas.width = vw;
+        canvas.height = vh;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, vw, vh);
+        let x = Math.floor(origX * vw);
+        let y = Math.floor(origY * vh);
+        let pixel = ctx.getImageData(x, y, 1, 1).data;
+        let lum = 0.2126 * pixel[0] + 0.7152 * pixel[1] + 0.0722 * pixel[2];
+        return lum / 255;
+    }
+    function getAverageLuma(video) {
+        let canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let sum = 0;
+        for (let i = 0; i < imgData.data.length; i += 4) {
+            let lum = 0.2126 * imgData.data[i] + 0.7152 * imgData.data[i+1] + 0.0722 * imgData.data[i+2];
+            sum += lum;
+        }
+        return sum / (imgData.data.length / 4) / 255;
+    }
+    function getCenterWeightedLuma(video) {
+        let canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let centerX = canvas.width/2, centerY = canvas.height/2;
+        let radius = Math.min(canvas.width, canvas.height) * 0.3;
+        let total = 0, weightSum = 0;
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                let dx = x - centerX, dy = y - centerY;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                let weight = dist <= radius ? 1 : Math.max(0, 1 - (dist - radius) / radius);
+                let idx = (y * canvas.width + x) * 4;
+                let lum = 0.2126 * imgData.data[idx] + 0.7152 * imgData.data[idx+1] + 0.0722 * imgData.data[idx+2];
+                total += lum * weight;
+                weightSum += weight;
+            }
+        }
+        return (total / weightSum) / 255;
+    }
+    function getEvaluativeLuma(video) { return getAverageLuma(video); }
+    function getPartialLuma(video) {
+        let canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let centerX = canvas.width/2, centerY = canvas.height/2;
+        let radius = Math.min(canvas.width, canvas.height) * 0.1;
+        let total = 0, count = 0;
+        for (let y = centerY - radius; y <= centerY + radius; y++) {
+            for (let x = centerX - radius; x <= centerX + radius; x++) {
+                if (x>=0 && x<canvas.width && y>=0 && y<canvas.height) {
+                    let idx = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
+                    let lum = 0.2126 * imgData.data[idx] + 0.7152 * imgData.data[idx+1] + 0.0722 * imgData.data[idx+2];
+                    total += lum;
+                    count++;
+                }
+            }
+        }
+        return (total / count) / 255;
+    }
+    function calculateEVFromLuma(luma) {
+        let ev = luma * 12 + 2;
+        return Math.min(16, Math.max(1, ev));
+    }
+    function updateMeterFromVideo() {
+        if (isFrozen || !videoPreview.videoWidth) return;
+        let luma;
+        if (currentMeterMode === 'spot') {
+            let markerRect = spotMarker.getBoundingClientRect();
+            let displayX = markerRect.left + markerRect.width/2;
+            let displayY = markerRect.top + markerRect.height/2;
+            luma = getLumaAtDisplayPoint(displayX, displayY);
+        } else if (currentMeterMode === 'center') {
+            luma = getCenterWeightedLuma(videoPreview);
+        } else if (currentMeterMode === 'evaluative') {
+            luma = getEvaluativeLuma(videoPreview);
+        } else {
+            luma = getPartialLuma(videoPreview);
+        }
+        let ev = calculateEVFromLuma(luma);
+        currentMeterEV = ev;
+        document.getElementById('liveEV').innerHTML = ev.toFixed(1);
+        updateMeterDisplay();
+    }
+    function freezeCurrentFrame() {
+        if (!videoPreview.videoWidth) return;
+        isFrozen = true;
+        let canvas = freezeCanvas;
+        canvas.width = videoPreview.videoWidth;
+        canvas.height = videoPreview.videoHeight;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'block';
+        videoPreview.style.display = 'none';
+        if (videoStream) { videoStream.getTracks().forEach(track => track.stop()); videoStream = null; }
+        if (animId) cancelAnimationFrame(animId);
+        document.getElementById('liveEV').innerHTML = currentMeterEV.toFixed(1);
+        updateMeterDisplay();
+    }
+    function startCamera() {
+        if (videoStream) stopCamera();
+        isFrozen = false;
+        freezeCanvas.style.display = 'none';
+        videoPreview.style.display = 'block';
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => {
+                videoStream = stream;
+                videoPreview.srcObject = stream;
+                videoPreview.play();
+                cameraContainer.style.display = 'block';
+                document.getElementById('camWarn').style.display = 'none';
+                spotMarker.style.display = currentMeterMode === 'spot' ? 'block' : 'none';
+                function frameLoop() {
+                    if (videoStream && videoPreview.readyState >= 2 && !isFrozen) {
+                        updateMeterFromVideo();
+                        drawGuides();
+                    }
+                    animId = requestAnimationFrame(frameLoop);
+                }
+                frameLoop();
+            })
+            .catch(err => alert("无法访问摄像头，请确保 HTTPS 环境并授权"));
+    }
+    function stopCamera() {
+        if (!isFrozen) freezeCurrentFrame();
+    }
+    function setupSpotPicker() {
+        videoContainer.addEventListener('click', (e) => {
+            if (isFrozen) return;
+            if (currentMeterMode !== 'spot') return;
+            let rect = videoContainer.getBoundingClientRect();
+            let x = e.clientX - rect.left, y = e.clientY - rect.top;
+            x = Math.min(rect.width, Math.max(0, x));
+            y = Math.min(rect.height, Math.max(0, y));
+            spotMarker.style.left = (rect.left + x) + 'px';
+            spotMarker.style.top = (rect.top + y) + 'px';
+            updateMeterFromVideo();
+        });
+    }
+    function bindControls() {
+        document.querySelectorAll('.aspect-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.aspect-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentAspect = btn.dataset.aspect;
+                setAspectRatio(currentAspect);
+                drawGuides();
+                saveAllParams();
+            });
+        });
+        document.querySelectorAll('.guide-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.guide-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentGuide = btn.dataset.guide;
+                drawGuides();
+                saveAllParams();
+            });
+        });
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMeterMode = btn.dataset.mode;
+                spotMarker.style.display = currentMeterMode === 'spot' ? 'block' : 'none';
+                updateMeterFromVideo();
+                saveAllParams();
+            });
+        });
+    }
+    
+    function init() {
+        fillGlobalApertureSelect();
+        refreshFilmSelect();
+        document.getElementById('calcBtn').addEventListener('click', computeFilmParams);
+        document.getElementById('startCamBtn').addEventListener('click', startCamera);
+        document.getElementById('stopCamBtn').addEventListener('click', stopCamera);
+        document.getElementById('filmSelect').addEventListener('change', () => { 
+            updateFilmInfo(); 
+            computeFilmParams();
+            if (!isFrozen && videoStream) updateMeterFromVideo();
+            else updateMeterDisplay();
+            saveAllParams();
+        });
+        document.getElementById('ndCalcBtn').addEventListener('click', computeND);
+        document.getElementById('globalApertureSelect').addEventListener('change', () => {
+            updateMeterDisplay();
+            updateCalcDisplay();
+            saveAllParams();
+        });
+        const inputs = ['inputISO', 'inputAperture', 'inputShutter', 'inputEVComp', 'nd1Select', 'nd2Select', 'originalShutter'];
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', () => { computeFilmParams(); saveAllParams(); });
+            document.getElementById(id).addEventListener('change', () => { computeFilmParams(); saveAllParams(); });
+        });
+        setupSpotPicker();
+        bindControls();
+        setAspectRatio('4:3');
+        computeFilmParams();
+    }
+    init();
+</script>
+</body>
+</html>
